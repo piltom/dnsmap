@@ -1,16 +1,17 @@
 use clap::Parser;
 use trust_dns_resolver::config::{LookupIpStrategy, NameServerConfig, Protocol};
-use trust_dns_resolver::lookup_ip::LookupIp;
 
 use std::error::Error;
 use std::sync::{Arc, Mutex};
-use std::{fs, io::Write};
+use std::fs;
 use trust_dns_resolver::{
     config::{ResolverConfig, ResolverOpts},
     AsyncResolver,
 };
 
 mod subdomains;
+mod outputter;
+use outputter::{FileOutput, ConsoleOutput, Outputter};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -57,51 +58,6 @@ struct Args {
     j: Option<usize>,
 }
 
-struct OutputFormatter {
-    file: Option<fs::File>,
-    headers: bool,
-}
-
-impl OutputFormatter {
-    fn new(path: &Option<String>, headers: bool) -> Result<Self, std::io::Error> {
-        match path {
-            Some(path) => Ok(Self {
-                file: Some(fs::File::create(path)?),
-                headers,
-            }),
-            _ => Ok(Self { file: None, headers }),
-        }
-    }
-
-    fn print_headers(&mut self) -> Result<(), std::io::Error> {
-        if !self.headers {
-            return Ok(());
-        }
-
-        let line = "Name\t\t\tRecord Type";
-        match &mut self.file {
-            Some(file) => {
-                file.write(line.as_bytes())?;
-            }
-            None => println!("{}", line),
-        };
-        Ok(())
-    }
-    fn add_result(&mut self, lookup: LookupIp) -> Result<(), std::io::Error> {
-        for record in lookup.as_lookup().records() {
-            let line = format!("{}\t\t\t{}", record.name().to_ascii(), record.record_type());
-        match &mut self.file {
-            Some(file) => {
-                file.write(line.as_bytes())?;
-            }
-            None => println!("{}", line),
-        };
-        }
-
-        Ok(())
-    }
-}
-
 fn get_strategy(strategy: &str) -> LookupIpStrategy {
     match strategy {
         "both" => LookupIpStrategy::Ipv4AndIpv6,
@@ -120,7 +76,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let j = args.j.unwrap_or(1);
     assert!(j > 0);
 
-    let out = Arc::new(Mutex::new(OutputFormatter::new(&args.output, args.table_headers)?));
+    let out: Arc<Mutex<Box<dyn Outputter + Send>>> = match &args.output {
+        Some(filename) => Arc::new(Mutex::new(Box::new(FileOutput::new(filename, args.table_headers)?))),
+        None => Arc::new(Mutex::new(Box::new(ConsoleOutput::new(args.table_headers)))),
+    };
+
 
     let mut opts = ResolverOpts::default();
 
