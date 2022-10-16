@@ -2,16 +2,16 @@ use clap::Parser;
 use trust_dns_resolver::config::{LookupIpStrategy, NameServerConfig, Protocol};
 
 use std::error::Error;
-use std::sync::{Arc, Mutex};
 use std::fs;
+use std::sync::{Arc, Mutex};
 use trust_dns_resolver::{
     config::{ResolverConfig, ResolverOpts},
     AsyncResolver,
 };
 
-mod subdomains;
 mod outputter;
-use outputter::{FileOutput, ConsoleOutput, Outputter};
+mod subdomains;
+use outputter::{ConsoleOutput, FileOutput, Outputter};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -77,10 +77,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     assert!(j > 0);
 
     let out: Arc<Mutex<Box<dyn Outputter + Send>>> = match &args.output {
-        Some(filename) => Arc::new(Mutex::new(Box::new(FileOutput::new(filename, args.table_headers)?))),
+        Some(filename) => Arc::new(Mutex::new(Box::new(FileOutput::new(
+            filename,
+            args.table_headers,
+        )?))),
         None => Arc::new(Mutex::new(Box::new(ConsoleOutput::new(args.table_headers)))),
     };
-
 
     let mut opts = ResolverOpts::default();
 
@@ -117,17 +119,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
             file = fs::read_to_string(path)?;
             file_lines = file.lines().collect::<Vec<&str>>();
             Some(file_lines.iter())
-        },
-        _ => None
+        }
+        _ => None,
     };
 
     out.lock().unwrap().print_headers()?;
 
     tokio_scoped::scope(|scope| {
-
         let word_iter = match custom_list {
             Some(mylist) => mylist,
-            _ => subdomains::SUBS.iter()
+            _ => subdomains::SUBS.iter(),
         };
 
         for word in word_iter {
