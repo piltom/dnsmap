@@ -1,6 +1,10 @@
-Tool for brute-forcing/scanning for existing subdomains in a domain. Based on dnsmap c application.
+# dnsmap-rs
 
-Can query configurable DNS servers, execute requests paralelly or not (see `-j`) and filter out by ip type. More features on the way.
+Tool for brute-forcing/scanning for existing subdomains in a domain. Based on [dnsmap c application](https://github.com/resurrecting-open-source-projects/dnsmap) that is packaged in kali linux.
+
+Can query configurable DNS servers, execute requests paralelly or not (see `-j`) and filter out by ip type.
+
+Feel free to request features or submit PRs.
 
 # Usage
 
@@ -48,3 +52,11 @@ Options:
   -V, --version
           Print version information
 ```
+
+# Shortcomings / TODO
+
+The program is missing features. Some of them could be:
+
+- Configurable output (pick columns, separators, etc)
+- Feedback on progress
+- Better result filtering
