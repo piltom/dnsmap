@@ -58,5 +58,5 @@ Options:
 The program is missing features. Some of them could be:
 
 - Configurable output (pick columns, separators, etc)
-- Feedback on progress
+- ~~Feedback on progress~~: added on version 0.2.0
 - Better result filtering

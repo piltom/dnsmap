@@ -3,6 +3,7 @@ use trust_dns_resolver::config::{LookupIpStrategy, NameServerConfig, Protocol};
 
 use std::error::Error;
 use std::fs;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use trust_dns_resolver::{
     config::{ResolverConfig, ResolverOpts},
@@ -76,14 +77,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let j = args.j.unwrap_or(1);
     assert!(j > 0);
 
-    let out: Arc<Mutex<Box<dyn Outputter + Send>>> = match &args.output {
-        Some(filename) => Arc::new(Mutex::new(Box::new(FileOutput::new(
-            filename,
-            args.table_headers,
-        )?))),
-        None => Arc::new(Mutex::new(Box::new(ConsoleOutput::new(args.table_headers)))),
-    };
-
     let mut opts = ResolverOpts::default();
 
     if let Some(strategy) = args.strategy {
@@ -123,21 +116,35 @@ async fn main() -> Result<(), Box<dyn Error>> {
         _ => None,
     };
 
+    let word_iter = match custom_list {
+        Some(mylist) => mylist,
+        _ => subdomains::SUBS.iter(),
+    };
+
+    let out: Arc<Mutex<Box<dyn Outputter + Send>>> = match &args.output {
+        Some(filename) => Arc::new(Mutex::new(Box::new(FileOutput::new(
+            filename,
+            args.table_headers,
+            word_iter.len(),
+        )?))),
+        None => Arc::new(Mutex::new(Box::new(ConsoleOutput::new(
+            args.table_headers,
+            word_iter.len(),
+        )))),
+    };
+
     out.lock().unwrap().print_headers()?;
 
     tokio_scoped::scope(|scope| {
-        let word_iter = match custom_list {
-            Some(mylist) => mylist,
-            _ => subdomains::SUBS.iter(),
-        };
-
         for word in word_iter {
             while Arc::strong_count(&out) > j {}
-
             let domain = format!("{}.{}", word, args.domain);
             let out_arc = Arc::clone(&out);
             let task = resolver.lookup_ip(domain);
-
+            out_arc
+                .lock()
+                .unwrap()
+                .report_progress(String::from_str(word).unwrap());
             scope.spawn(async move {
                 if let Ok(lookup) = task.await {
                     out_arc.lock().unwrap().add_result(lookup).unwrap();

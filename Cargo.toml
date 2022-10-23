@@ -1,6 +1,6 @@
 [package]
 name = "dnsmap-rs"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Tool for brute-forcing/scanning for existing subdomains in a domain. Based on dnsmap c application."
 
@@ -11,4 +11,5 @@ clap = {version = "4.0.15", features = ["derive"]}
 tokio = { version = "1.21.2", features = ["full"] }
 tokio-scoped = "0.2.0"
 trust-dns-resolver = {version = "0.22.0", features = [ "tokio-runtime" ]}
+indicatif = "0.17.1"
 
