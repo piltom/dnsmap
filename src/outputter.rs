@@ -81,8 +81,7 @@ impl Outputter for ConsoleOutput {
     fn add_result(&mut self, lookup: LookupIp) -> Result<(), std::io::Error> {
         for record in lookup.as_lookup().records() {
             println!(
-                "{}",
-                format!("{}\t\t\t{}", record.name().to_ascii(), record.record_type())
+                "{}\t\t\t{}", record.name().to_ascii(), record.record_type()
             );
         }
         Ok(())
