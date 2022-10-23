@@ -6,6 +6,10 @@ Can query configurable DNS servers, execute requests paralelly or not (see `-j`)
 
 Feel free to request features or submit PRs.
 
+# Building
+
+Building requires Rust and Cargo which can be installed [using rustup](https://rustup.rs/).
+
 # Usage
 
 ```
